@@ -5,11 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.example.entitywithhash.entity.User;
 import com.example.entitywithhash.repository.UserRepository;
-import com.google.api.gax.rpc.AlreadyExistsException;
+import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -49,7 +50,7 @@ public class UserServiceTest {
   }
 
   @Test
-  public void insertUser_ThrowsAlreadyExistException_WhenUserAlreadyExists() {
+  public void insertUser_ThrowsJpaSystemException_WhenUserAlreadyExists() {
     // Arrange
     String validUserId = "testUserId";
     String validUserName = "testUserName";
@@ -58,12 +59,31 @@ public class UserServiceTest {
     userService.insertUser(validUserId, validUserName);
 
     // Assert
-    // 2回目の挿入時に、AlreadyExistsExceptionが投げられることを確認する
-    assertThrows(AlreadyExistsException.class, () -> {
+    // 2回目の挿入時に、JpaSystemExceptionが投げられることを確認する
+    // このJpaSystemExceptionは、主キー制約違反による例外によって発生することが期待されるが、
+    // ここでは、その判別はつかない
+    JpaSystemException exception = assertThrows(JpaSystemException.class, () -> {
       userService.insertUser(validUserId, validUserName);
     });
+
+    // 例外の原因がStatusRuntimeExceptionであることを確認する
+    Throwable rootCause = getRootCause(exception);
+    assertThat(rootCause).isInstanceOf(StatusRuntimeException.class);
+    StatusRuntimeException statusException = (StatusRuntimeException) rootCause;
+
+    // StatusRuntimeExceptionのステータスがALREADY_EXISTSであることを確認する
+    // これにより、主キー制約違反による例外であることを確認する
+    assertThat(statusException.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.ALREADY_EXISTS);
   }
 
+  private Throwable getRootCause(Throwable throwable) {
+    Throwable cause;
+    Throwable result = throwable;
+    while ((cause = result.getCause()) != null && result != cause) {
+      result = cause;
+    }
+    return result;
+  }
 
   @Test
   public void whenFindByUserId_thenReturnUser() {
@@ -78,7 +98,7 @@ public class UserServiceTest {
 
     // Assert
     assertThat(found).isNotNull();
-    assertThat(found.getId()).isEqualTo(validUserId);
+    assertThat(found.getId().getId()).isEqualTo(validUserId);
     assertThat(found.getName()).isEqualTo(validUserName);
   }
 

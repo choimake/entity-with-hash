@@ -15,7 +15,7 @@ public class UserService {
 
   public void insertUser(String userId, String userName) {
     var user = new User(userId, userName);
-    userRepository.insertUser(user);
+    userRepository.save(user);
   }
 
   public User findByUserId(String userId) {
