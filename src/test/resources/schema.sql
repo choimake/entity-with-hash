@@ -1,0 +1,5 @@
+CREATE TABLE user (
+  id_hash STRING(MAX) NOT NULL,
+  id STRING(MAX) NOT NULL,
+  name STRING(MAX) NOT NULL,
+) PRIMARY KEY (id_hash, id);
