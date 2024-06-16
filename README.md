@@ -12,7 +12,7 @@
 - DATABASE_NAME=database_id
 
 ### 2. テーブルの作成
-`src/resources/schema.sql`を実行してテーブルを作成する
+`src/test/resources/schema.sql`を実行してテーブルを作成する
 
 ### 3. テストを実行する
 実行する
